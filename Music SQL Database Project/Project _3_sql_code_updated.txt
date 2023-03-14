@@ -1,0 +1,97 @@
+/* First Slide: What’s the Total Track Purchased In Each Country? */
+
+SELECT
+  i.BillingCountry Country,
+  SUM(invl.Quantity) TotalTrack
+FROM Invoice i
+JOIN InvoiceLine invl
+  ON i.invoiceid = invl.InvoiceId
+GROUP BY 1
+ORDER BY 2 DESC
+
+
+
+/* Second slide: Who’s The Top Selling Artist For Each State In USA? */
+
+WITH table1
+AS (SELECT
+  a.name ArtistName,
+  i.billingstate State,
+  SUM(invl.invoiceId) TotalSales
+FROM artist a
+JOIN album al
+  ON a.artistid = al.artistid
+JOIN track t
+  ON al.albumid = t.albumid
+JOIN invoiceline invl
+  ON t.trackid = invl.trackid
+JOIN invoice i
+  ON invl.invoiceid = i.invoiceid
+JOIN customer c
+  ON i.customerid = c.customerid
+WHERE c.country = 'USA'
+GROUP BY 1,
+         2
+ORDER BY 3 DESC)
+
+SELECT
+  table1.*
+FROM table1
+JOIN (SELECT
+  MAX(TotalSales) AS MaxSales,
+  State
+FROM table1
+GROUP BY State) table2
+  ON table1.State = table2.State
+WHERE table1.TotalSales = table2.MaxSales
+ORDER BY MaxSales;
+
+
+
+
+
+/*Third Slide: Which Sales Support Agent Sold Less Than The Avg Total Sales? */
+
+WITH Total_Sales (FirstName, LastName, Employee_Sales)
+AS (SELECT
+  e.firstname FirstName,
+  e.lastname LastName,
+  SUM(total) AS Employee_Sales
+FROM employee e
+JOIN customer c
+  ON e.employeeid = c.supportrepid
+JOIN invoice i
+  ON c.customerid = i.customerid
+GROUP BY 1,
+         2),
+Avg_Sales (Avg_Employee_Sales)
+AS (SELECT
+  CAST(AVG(Employee_Sales) AS int) Avg_Employee_Sales
+FROM Total_Sales)
+
+SELECT
+  *
+FROM Total_Sales t
+JOIN Avg_Sales a
+  ON t.Employee_Sales < a.Avg_Employee_Sales;
+
+
+
+
+/* Fourth Slide: What is the least purchased genre in Canada? */
+SELECT
+  COUNT(i.InvoiceId) Purchase,
+  g.Name,c.Country
+FROM Invoice i
+JOIN Customer c
+  ON i.CustomerId = c.CustomerId
+JOIN InvoiceLine il
+  ON il.Invoiceid = i.InvoiceId
+JOIN Track t
+  ON t.TrackId = il.Trackid
+JOIN Genre g
+  ON t.GenreId = g.GenreId
+WHERE c.Country = 'Canada'
+GROUP BY 3,
+         2
+ORDER BY 1 DESC
